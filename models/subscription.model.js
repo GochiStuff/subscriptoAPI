@@ -49,7 +49,7 @@ const subscriptionSchema = new mongoose.Schema(
     },
     renewalDate: {
       type: Date,
-      required: [true, "Renewal date is required"],
+      // required: [true, "Renewal date is required"],
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -60,7 +60,6 @@ const subscriptionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    versionKey: false,
   }
 );
 
