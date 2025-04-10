@@ -26,7 +26,7 @@ export const createUserSubscription = async (req, res) => {
       country,
     } = req.body;
 
-    const existing = await Subscription.findOne({ name, admin: username });
+    const existing = await Subscription.findOne({ name: name , admin: username });
     if (existing) {
       return res.status(400).json({ message: "Subscription with this name already exists." });
     }
@@ -120,13 +120,16 @@ export const updateUserSubscription = async (req, res) => {
   }
 };
 
-
-export const deleteUserSubscripiton = async (req, res) => {
-  const subscriptionId = req.body.sub_id;
+export const deleteUserSubscription = async (req, res) => {
+  const subscriptionId = req.params.id;
   const requestingUsername = req.user?.username;
 
   if (!requestingUsername) {
     return res.status(401).json({ message: "Unauthorized: No user data" });
+  }
+
+  if (!subscriptionId) {
+    return res.status(400).json({ message: "Subscription ID is required" });
   }
 
   try {
@@ -136,11 +139,18 @@ export const deleteUserSubscripiton = async (req, res) => {
       return res.status(404).json({ message: "Subscription not found" });
     }
 
-    if (subscription.admin !== requestingUsername) {
-      return res.status(403).json({ message: "Forbidden: Only the admin can delete this subscription" });
-    }
+    if(subscription.admin != requestingUsername){
+      return res.status(403).json({message: "Forbidden: Only admin of the subscription can delete it."});
+    };
 
-    await subscription.deleteOne();
+    // NOTE: Make sure you’re comparing values of the same type (ObjectId to string)
+    // if (subscription.admin.toString() !== req.user._id.toString()) {
+    //   return res.status(403).json({
+    //     message: "Forbidden: Only the admin can delete this subscription",
+    //   });
+    // }
+
+    await Subscription.deleteOne({ _id: subscriptionId });
 
     res.status(200).json({
       success: true,
@@ -150,4 +160,3 @@ export const deleteUserSubscripiton = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
