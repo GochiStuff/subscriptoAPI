@@ -1,37 +1,22 @@
 import { Router } from "express";
 import authorize from "../middleware/auth.middleware.js";
-import { createSubscription } from "../controllers/subscription.controller.js";
+import {
+  getUserSubscriptions,
+  updateUserSubscription,
+  createUserSubscription,
+  deleteUserSubscripiton
+} from "../controllers/subscription.controller.js";
 
 const subscriptionRouter = Router();
 
-subscriptionRouter.post('/:id', authorize , createSubscription);
+// ADMIN ONLY ( NOT MADE FOR NOW )
+// subscriptionRouter.get("/", getAllSubscriptions);
 
-subscriptionRouter.get('/:id', (req, res) => {
-    res.send({ title: `This is the subscription ${req.params.id}` });
-});
 
-subscriptionRouter.put('/:id', (req, res) => {
-    res.send({ title: `Update subscription ${req.params.id}` });
-});
-
-subscriptionRouter.delete('/:id', (req, res) => {
-    res.send({ title: `Delete subscription ${req.params.id}` });
-});
-
-subscriptionRouter.get('/', (req, res) => {
-    res.send({ title: 'Get all subscriptions' });
-});
-
-subscriptionRouter.get('/user/:id', (req, res) => {
-    res.send({ title: `Get all subscriptions for user ${req.params.id}` });
-});
-
-subscriptionRouter.put('/user/:id', (req, res) => {
-    res.send({ title: `Update a subscription for user ${req.params.id}` });
-});
-
-subscriptionRouter.delete('/user/:id', (req, res) => {
-    res.send({ title: `Delete a subscription for user ${req.params.id}` });
-});
+// USER ACCESSABLE ROUTES
+subscriptionRouter.get("/", authorize, getUserSubscriptions); // Get current user's subs
+subscriptionRouter.post("/", authorize, createUserSubscription); // Add sub (preset/custom)
+subscriptionRouter.put("/", authorize, updateUserSubscription); // PUt sub (preset/custom)
+subscriptionRouter.delete("/" , authorize , deleteUserSubscripiton); // Delete sub ( preset/custom)
 
 export default subscriptionRouter;

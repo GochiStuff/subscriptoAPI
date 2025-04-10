@@ -2,12 +2,13 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js"; // Make sure this model exists
+import subscriptionModel from "../models/subscription.model.js";
 
-export const signUp = async (req, res, next) => {
+export const signUp = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-        const { name, email, password } = req.body;
+        const { name, username ,  email, password } = req.body;
 
         const existingUser = await User.findOne({ email }).session(session);
         if (existingUser) {
@@ -18,7 +19,7 @@ export const signUp = async (req, res, next) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const [newUser] = await User.create(
-            [{ name, email, password: hashedPassword }],
+            [{ name,username ,  email, password: hashedPassword }],
             { session }
         );
 
@@ -29,12 +30,22 @@ export const signUp = async (req, res, next) => {
         await session.commitTransaction();
         session.endSession();
 
+        // Setting up HTTP-only cookie for the token  ( so now we are saving cookies on the server side )
+        res.cookie("token" , token , {
+            httpOnly: true,
+            secure: false, // Set to true if using HTTPS
+            sameSite: "lax",
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+
+        });
+
+
         res.status(201).json({
             message: "User created successfully",
-            token,
+            // token,
             user: {
-                id: newUser._id,
                 name: newUser.name,
+                username: newUser.username,
                 email: newUser.email,
             },
         });
@@ -63,25 +74,45 @@ export const signIn = async (req, res, next) => {
             expiresIn: "30d",
         });
 
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: false,             // Set to true ONLY in production with HTTPS
+            sameSite: "Lax",           // Or 'None' if cross-site
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+        });
+          
+        
+        // This is the only place where I am sending user his/her data so no need to define any other function for now can use this only . 
+        // putting together all user data and sending it ( user + all the subscription he is a part of ) 
+        // getting all user subscriptions .
+
+        const filteredUsersubscriptions = await subscriptionModel.find({
+            $or: [
+                { admin : user._id },
+                { collaborations : user._id }
+            ]
+        });
+        const userData = user.toObject();
+        const { _id, password : String, updatedAt, ...filteredUser } = userData;
+
+        // assing subs of the user . 
+        filteredUser.subscriptions = filteredUsersubscriptions;
+        
         res.status(200).json({
-            message: "Sign in successful",
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-            },
+          message: "Sign in successful",
+          user: filteredUser,
         });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
 };
 
-export const signOut = async (req, res, next) => {
-    try {
-        // You can clear token on frontend or invalidate session token here if you're using cookies
-        res.status(200).json({ message: "Sign out successful" });
-    } catch (error) {
-        return res.status(500).json({ message: error.message });
-    }
+export const signOut = (req, res) => {
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: false, // Set to true if using HTTPS
+        sameSite: "lax",
+    });
+    res.status(200).json({ message: "Sign out successful" });
 };
+
