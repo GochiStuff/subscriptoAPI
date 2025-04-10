@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js"; // Make sure this model exists
-import subscriptionModel from "../models/subscription.model.js";
+import Subscription from "../models/subscription.model.js";
 
 export const signUp = async (req, res) => {
     const session = await mongoose.startSession();
@@ -86,12 +86,15 @@ export const signIn = async (req, res, next) => {
         // putting together all user data and sending it ( user + all the subscription he is a part of ) 
         // getting all user subscriptions .
 
-        const filteredUsersubscriptions = await subscriptionModel.find({
-            $or: [
-                { admin : user._id },
-                { collaborations : user._id }
-            ]
-        });
+
+        // SIMPLE COPY PASTE OF THE GET FUNCTION 
+        const filteredUsersubscriptions = await Subscription.find({
+              $or:[
+                { admin: user.username },
+                { collaborations: user.username }
+              ]
+        }).sort({ createdAt: -1 });
+
         const userData = user.toObject();
         const { _id, password : String, updatedAt, ...filteredUser } = userData;
 
