@@ -7,6 +7,8 @@ import {
   deleteUserSubscription
 } from "../controllers/subscription.controller.js";
 
+import { createSubsHistory , updateSubsHistroy , deleteSubsHistory } from "../controllers/subsHistory.controller.js";
+
 const subscriptionRouter = Router();
 
 // ADMIN ONLY ( NOT MADE FOR NOW )
@@ -18,5 +20,12 @@ subscriptionRouter.get("/", authorize, getUserSubscriptions); // Get current use
 subscriptionRouter.post("/", authorize, createUserSubscription); // Add sub (preset/custom)
 subscriptionRouter.put("/", authorize, updateUserSubscription); // PUt sub (preset/custom)
 subscriptionRouter.delete("/:id" , authorize , deleteUserSubscription); // Delete sub ( preset/custom)
+
+      // subscription history !! 
+subscriptionRouter.post("/history" , authorize , createSubsHistory);
+subscriptionRouter.put("/history" , authorize , updateSubsHistroy);
+subscriptionRouter.delete("/history/:id" , authorize , deleteSubsHistory);
+
+
 
 export default subscriptionRouter;

@@ -83,17 +83,15 @@ export const getUserSubscriptions = async (req, res) => {
 
 
 export const updateUserSubscription = async (req, res) => {
-  
-  const subscriptionId = req.body.sub_id;
   const updates = req.body.subscription;
-  const requestingUsername = req.user?.username;
+  const requestingUsername = req.user.username;
 
   if (!requestingUsername) {
     return res.status(401).json({ message: "Unauthorized: No user data" });
   }
 
   try {
-    const subscription = await Subscription.findById(subscriptionId);
+    const subscription = await Subscription.findById(updates._id);
 
     if (!subscription) {
       return res.status(404).json({ message: "Subscription not found" });
@@ -104,7 +102,7 @@ export const updateUserSubscription = async (req, res) => {
     }
 
     const updatedSub = await Subscription.findByIdAndUpdate(
-      subscriptionId,
+      updates._id,
       updates,
       { new: true, runValidators: true }
     );

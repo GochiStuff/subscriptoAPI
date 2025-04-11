@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js"; // Make sure this model exists
 import Subscription from "../models/subscription.model.js";
+import subsHistoryModel from "../models/subsHistory.model.js";
 
 export const signUp = async (req, res) => {
     const session = await mongoose.startSession();
@@ -87,7 +88,7 @@ export const signIn = async (req, res, next) => {
         // getting all user subscriptions .
 
 
-        // SIMPLE COPY PASTE OF THE GET FUNCTION 
+        // SIMPLE COPY PASTE OF THE GET FUNCTION ( ADD SUBS & HISTORY ) 
         const filteredUsersubscriptions = await Subscription.find({
               $or:[
                 { admin: user.username },
@@ -100,6 +101,17 @@ export const signIn = async (req, res, next) => {
 
         // assing subs of the user . 
         filteredUser.subscriptions = filteredUsersubscriptions;
+
+
+
+        //ADD HISTORY
+        const userHistory = await subsHistoryModel
+        .find({ username: user.username })  
+        .sort({ endDate: -1 });
+        
+        console.log( userHistory);
+      
+      filteredUser.history = userHistory;
         
         res.status(200).json({
           message: "Sign in successful",

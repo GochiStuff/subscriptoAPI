@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const friendReqSchema = new mongoose.Schema(
   {
+
     sender: {
       type: String, // just the username string
       required: true,
