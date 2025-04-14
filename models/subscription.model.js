@@ -1,28 +1,24 @@
 import mongoose from "mongoose";
 
-const subscriptionSchema = new mongoose.Schema(
+const periodSchema = new mongoose.Schema(
   {
-    platform: {
-      type: String,
-      required: true,
-    },
-    admin: {
-      type: String, // Assuming this is a user ID or username; update to ObjectId if needed
-      required: true,
-    },
-    collaborations: {
-      type: [String], // Array of usernames or IDs
-      default: [],
-    },
+    startDate: { type: Date, required: true },
+    endDate: { type: Date, required: true },
+    price: { type: Number, required: true },
+    collaborations: { type: [String], default: [] },
+    planName: { type: String, required: true },
     split: {
       type: Map,
-      of: Number, // Record<string, number>
+      of: Number,
       default: {},
     },
-    name: {
-      type: String,
-      required: true,
-    },
+  },
+  { _id: false }
+);
+
+
+const currentPlanSchema = new mongoose.Schema(
+  {
     plan: {
       type: String,
       required: true,
@@ -31,37 +27,65 @@ const subscriptionSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    currency: {
+    collaborations: {
+      type: [String],
+      default: [],
+    },
+    split: {
+      type: Map,
+      of: Number,
+      default: {},
+    },
+  },
+  { _id: false }
+);
+
+const subscriptionSchema = new mongoose.Schema(
+  {
+    name: {
       type: String,
       required: true,
     },
-    duration: {
+    admin: {
       type: String,
-      required: true, // e.g., "monthly", "yearly"
+      required: true,
+    },
+    platform: {
+      type: String,
+      required: true,
     },
     category: {
       type: String,
       required: true,
     },
-    startDate: {
-      type: Date,
+    currency: {
+      type: String,
       required: true,
     },
-    endDate: {
-      type: Date,
+    paymentMethod: {
+      type: String,
       required: true,
     },
     status: {
       type: String,
-      required: true, 
+      enum: ["active", "paused", "cancelled"],
+      required: true,
     },
-    paymentMethod: {
-      type: String,
-      required: true, 
+    currentPlan: {
+      type: currentPlanSchema,
+      required: true,
     },
-    country: {
-      type: String, 
-      default: null,
+    periods: {
+      type: [periodSchema],
+      default: [],
+    },
+    createdAt: {
+      type: Date,
+      default: () => new Date(),
+    },
+    updatedAt: {
+      type: Date,
+      default: () => new Date(),
     },
   },
   { timestamps: true }

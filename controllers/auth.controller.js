@@ -1,9 +1,8 @@
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import User from "../models/user.model.js"; // Make sure this model exists
+import User from "../models/user.model.js"; 
 import Subscription from "../models/subscription.model.js";
-import subsHistoryModel from "../models/subsHistory.model.js";
 
 export const signUp = async (req, res) => {
     const session = await mongoose.startSession();
@@ -88,30 +87,35 @@ export const signIn = async (req, res, next) => {
         // getting all user subscriptions .
 
 
-        // SIMPLE COPY PASTE OF THE GET FUNCTION ( ADD SUBS & HISTORY ) 
+        // SIMPLE COPY PASTE OF THE GET FUNCTION 
         const filteredUsersubscriptions = await Subscription.find({
-              $or:[
-                { admin: user.username },
-                { collaborations: user.username }
-              ]
-        }).sort({ createdAt: -1 });
+            $or: [
+              { admin: user.username },
+              { collaborations: user.username },
+            ],
+          }).sort({ createdAt: -1 }).lean(); // use .lean() to make filtering faster
+        const userSubscriptions = filteredUsersubscriptions.map(sub => {
+            const relevantPeriods = sub.periods.filter(period =>
+              period.collaborations.includes(user.username)
+            );
+          
+            // If the user is admin, show full data. Otherwise only periods where they're involved
+            if (sub.admin === user.username) {
+              return sub; // full access
+            } else {
+              return {
+                ...sub,
+                periods: relevantPeriods,
+              };
+            }   
+        });
 
         const userData = user.toObject();
-        const { _id, password : String, updatedAt, ...filteredUser } = userData;
+        const { _id, password: _p, updatedAt, ...filteredUser } = userData;
 
-        // assing subs of the user . 
-        filteredUser.subscriptions = filteredUsersubscriptions;
+        filteredUser.subscriptions = userSubscriptions;
 
-
-
-        //ADD HISTORY
-        const userHistory = await subsHistoryModel
-        .find({ username: user.username })  
-        .sort({ endDate: -1 });
-        
-        console.log( userHistory);
-      
-      filteredUser.history = userHistory;
+          
         
         res.status(200).json({
           message: "Sign in successful",

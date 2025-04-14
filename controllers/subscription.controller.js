@@ -2,89 +2,76 @@
 import mongoose from "mongoose";
 import Subscription from "../models/subscription.model.js";
 
-export const createUserSubscription = async (req, res) => {
-  
-  // wanted to user session but not needed so not using it for now .
 
+export const createUserSubscription = async (req, res) => {
   const username = req.user?.username;
 
-  try {
-     const {
-      platform,
-      collaborations = [],
-      split = {},
-      name,
-      plan,
-      price,
-      currency,
-      duration,
-      category,
-      startDate,
-      endDate,
-      status,
-      paymentMethod,
-      country,
-    } = req.body;
+  if (!username) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
-    const existing = await Subscription.findOne({ name: name , admin: username });
+  try {
+    const sub = req.body.subscription;
+
+    console.log(sub);
+
+    if (!sub?.name || !sub?.platform || !sub?.currentPlan) {
+      return res.status(400).json({ message: "Incomplete subscription data" });
+    }
+
+    const existing = await Subscription.findOne({ name: sub.name, admin: username });
     if (existing) {
-      return res.status(400).json({ message: "Subscription with this name already exists." });
+      return res.status(400).json({
+        message: "Subscription with this name already exists.",
+      });
     }
 
     const newSubscription = await Subscription.create({
-      platform,
-      admin: username,
-      collaborations,
-      split,
-      name,
-      plan,
-      price,
-      currency,
-      duration,
-      category,
-      startDate,
-      endDate,
-      status,
-      paymentMethod,
-      country,
+      ...sub,
+      admin: username, // override just in case
     });
 
-    res.status(201).json({ success: true, message: "Subscription created", subscription: newSubscription });
+    return res.status(201).json({
+      success: true,
+      message: "Subscription created",
+      subscription: newSubscription,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
-export const getUserSubscriptions = async (req, res) => {
 
-  const username = req.user?.username;
 
-  if(!username){
-    return res.status(401).json({ message: "Unauthorized" });
-  }
+// not using for now . 
+// export const getUserSubscriptions = async (req, res) => {
+
+//   const username = req.user?.username;
+
+//   if(!username){
+//     return res.status(401).json({ message: "Unauthorized" });
+//   }
   
-  try {
-    const subscriptions = await Subscription.find({
-      $or:[
-        { admin: username },
-        { collaborations: username }
-      ]
-    }).sort({ createdAt: -1 });
-    res.status(200).json({ success: true ,  subscriptions });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+//   try {
+//     const subscriptions = await Subscription.find({
+//       $or:[
+//         { admin: username },
+//         { collaborations: username }
+//       ]
+//     }).sort({ createdAt: -1 });
+//     res.status(200).json({ success: true ,  subscriptions });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
 
 
 
 // TODO : 
 // check if the all the collaborations are the friends of the user in the backend too. 
-
-
 export const updateUserSubscription = async (req, res) => {
   const updates = req.body.subscription;
-  const requestingUsername = req.user.username;
+  const requestingUsername = req.user?.username;
 
   if (!requestingUsername) {
     return res.status(401).json({ message: "Unauthorized: No user data" });
@@ -98,25 +85,49 @@ export const updateUserSubscription = async (req, res) => {
     }
 
     if (subscription.admin !== requestingUsername) {
-      return res.status(403).json({ message: "Forbidden: Only the admin can update this subscription" });
+      return res.status(403).json({
+        message: "Forbidden: Only the admin can update this subscription",
+      });
     }
 
-    const updatedSub = await Subscription.findByIdAndUpdate(
-      updates._id,
-      updates,
-      { new: true, runValidators: true }
-    );
+    // Update current plan (replace entirely)
+    if (updates.currentPlan) {
+      subscription.currentPlan = {
+        plan: updates.currentPlan.plan,
+        price: updates.currentPlan.price,
+        collaborations: updates.currentPlan.collaborations,
+        split: updates.currentPlan.split || {},
+      };
+    }
 
-    res.status(200).json({
+    // Update basic fields
+    subscription.name = updates.name || subscription.name;
+    subscription.platform = updates.platform || subscription.platform;
+    subscription.category = updates.category || subscription.category;
+    subscription.currency = updates.currency || subscription.currency;
+    subscription.paymentMethod = updates.paymentMethod || subscription.paymentMethod;
+    subscription.status = updates.status || subscription.status;
+
+    // Optionally update periods if provided
+    if (Array.isArray(updates.periods) && updates.periods.length > 0) {
+      subscription.periods = updates.periods;
+    }
+
+    subscription.updatedAt = new Date();
+
+    const updatedSub = await subscription.save();
+
+    return res.status(200).json({
       success: true,
       message: "Subscription updated",
       subscription: updatedSub,
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
+
 
 export const deleteUserSubscription = async (req, res) => {
   const subscriptionId = req.params.id;
@@ -137,16 +148,11 @@ export const deleteUserSubscription = async (req, res) => {
       return res.status(404).json({ message: "Subscription not found" });
     }
 
-    if(subscription.admin != requestingUsername){
-      return res.status(403).json({message: "Forbidden: Only admin of the subscription can delete it."});
-    };
-
-    // NOTE: Make sure you’re comparing values of the same type (ObjectId to string)
-    // if (subscription.admin.toString() !== req.user._id.toString()) {
-    //   return res.status(403).json({
-    //     message: "Forbidden: Only the admin can delete this subscription",
-    //   });
-    // }
+    if (subscription.admin !== requestingUsername) {
+      return res.status(403).json({
+        message: "Forbidden: Only admin of the subscription can delete it.",
+      });
+    }
 
     await Subscription.deleteOne({ _id: subscriptionId });
 
