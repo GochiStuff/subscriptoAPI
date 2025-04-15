@@ -4,37 +4,39 @@ import FriendRequest from "../models/friendReq.model.js";
 export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const updates = req.body;
+    const updates = { ...req.body };
+
+    const blockedFields = ["_id", "id", "username", "email", "password", "friends"];
+    blockedFields.forEach((field) => delete updates[field]);
 
     const updatedUser = await User.findByIdAndUpdate(userId, updates, {
       new: true,
       runValidators: true,
     }).select("-password");
 
-    res.status(200).json({ success: true, message: "Profile updated" });
+    res.status(200).json({ success: true, message: "Profile updated", user: updatedUser });
   } catch (error) {
     res.status(500).json({ message: "Error updating profile", error: error.message });
   }
 };
 
+
 export const sendFriendRequest = async (req, res) => {
   const { to_username } = req.body;
-  const user_id = req.user?.id;
   const from_username = req.user?.username;
 
   try {
-    if (!user_id) {
-      return res.status(401).json({ message: "Unauthorized" });
+    if (to_username === from_username) {
+      return res.status(400).json({ message: "You cannot send a friend request to yourself" });
     }
 
-    // if (user_username !== from_username) {
-    //   return res.status(403).json({ message: "Forbidden: Invalid sender identity" });
-    // }
-
-    // Check if the target user exists
-    const receiverExists = await User.findOne({ username: to_username });
-    if (!receiverExists) {
+    const receiver = await User.findOne({ username: to_username });
+    if (!receiver) {
       return res.status(404).json({ message: "Receiver user not found" });
+    }
+
+    if (receiver.friends.includes(from_username)) {
+      return res.status(409).json({ message: "You are already friends" });
     }
 
     const existingRequest = await FriendRequest.findOne({
@@ -59,12 +61,13 @@ export const sendFriendRequest = async (req, res) => {
   }
 };
 
+
 export const getFriendRequests = async (req, res) => {
   const username = req.user?.username;
 
   try {
-    const received = await FriendRequest.find({ receiver: username });
-    const sent = await FriendRequest.find({ sender: username });
+    const received = await FriendRequest.find({ receiver: username, status: "pending" });
+    const sent = await FriendRequest.find({ sender: username, status: "pending" });
 
     res.status(200).json({
       success: true,
@@ -79,7 +82,8 @@ export const getFriendRequests = async (req, res) => {
         createdAt: r.createdAt
       }))
     });
-  } catch (error) {
+  } 
+  catch (error) {
     res.status(500).json({ message: "Error fetching friend requests", error: error.message });
   }
 };
@@ -109,7 +113,6 @@ export const respondToFriendRequest = async (req, res) => {
     let friendUsername = null;
 
     if (action === "accept") {
-
       await User.updateOne({ username }, { $addToSet: { friends: sender } });
       await User.updateOne({ username: sender }, { $addToSet: { friends: username } });
       friendUsername = sender;
@@ -122,6 +125,52 @@ export const respondToFriendRequest = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Error updating friend request", error: error.message });
+  }
+};
+
+export const getAllFriends = async (req, res) => {
+  const username = req.user?.username;
+
+  try {
+    const user = await User.findOne({ username }).select("friends -_id");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, friends: user.friends });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching friends", error: error.message });
+  }
+};
+
+// REMOVE FRIEND
+export const removeFriend = async (req, res) => {
+  try {
+    const userId = req.user._id; // assuming you're using auth middleware
+    const { friend } = req.body; // friend can be username or id depending on how you store it
+
+    if (!friend) return res.status(400).json({ message: "Friend username is required" });
+
+    // Get both users
+    const user = await User.findById(userId);
+    const friendUser = await User.findOne({ username: friend });
+
+    if (!user || !friendUser) {
+      return res.status(404).json({ message: "User or friend not found" });
+    }
+
+    // Remove each other from friends list
+    user.friends = user.friends.filter(f => f !== friendUser.username);
+    friendUser.friends = friendUser.friends.filter(f => f !== user.username);
+
+    await user.save();
+    await friendUser.save();
+
+    res.status(200).json({ message: "Friend removed successfully" });
+  } catch (err) {
+    console.error("Error removing friend:", err);
+    res.status(500).json({ message: "Failed to remove friend" });
   }
 };
 
