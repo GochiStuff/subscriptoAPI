@@ -16,7 +16,7 @@ const app = express();
 // cookies fuck you 
 
 app.use(cors({
-  origin: "https://subscripto-frontend-k045gijj7-gochistuffs-projects.vercel.app",
+  origin: "https://subscripto-frontend-a.vercel.app",
   credentials: true // going httpsonly HAHA
 }))
 app.use(express.json());

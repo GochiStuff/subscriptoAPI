@@ -83,7 +83,7 @@ export const signIn = async (req, res, next) => {
           
         // This is the only place where I am sending user his/her data so no need to define any other function for now can use this only . 
         // putting together all user data and sending it ( user + all the subscription he is a part of ) 
-        // getting all user subscriptions .
+        // getting all user subscriptions . 
 
 
         // SIMPLE COPY PASTE OF THE GET FUNCTION 
