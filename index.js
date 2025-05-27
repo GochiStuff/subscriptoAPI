@@ -14,10 +14,15 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+// Middleware
+
+// TODO: Restrict CORS origins before production
 app.use(cors({
-  origin: ["https://subscripto-frontend-a.vercel.app", "http://localhost:3000"],
-  credentials: true
+  origin: (origin, callback) => callback(null, true),
+  credentials: true,
 }));
+
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
