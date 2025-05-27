@@ -76,50 +76,50 @@ export const signIn = async (req, res, next) => {
 
         res.cookie("token", token, {
             httpOnly: true,
-            secure: false,             // Set to true ONLY in production with HTTPS
-            sameSite: "Lax",           // Or 'None' if cross-site
-            maxAge: 30 * 24 * 60 * 60 * 1000,
-        });
+            secure: process.env.NODE_ENV === "production", // true in prod
+            sameSite: "Lax", // or "None" if your frontend is on a different domain (with HTTPS)
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+          });
           
-        
         // This is the only place where I am sending user his/her data so no need to define any other function for now can use this only . 
         // putting together all user data and sending it ( user + all the subscription he is a part of ) 
         // getting all user subscriptions .
 
 
         // SIMPLE COPY PASTE OF THE GET FUNCTION 
-        const filteredUsersubscriptions = await Subscription.find({
-            $or: [
-              { admin: user.username },
-              { collaborations: user.username },
-            ],
-          }).sort({ createdAt: -1 }).lean(); // use .lean() to make filtering faster
-        const userSubscriptions = filteredUsersubscriptions.map(sub => {
-            const relevantPeriods = sub.periods.filter(period =>
-              period.collaborations.includes(user.username)
-            );
+        // const filteredUsersubscriptions = await Subscription.find({
+        //     $or: [
+        //       { admin: user.username },
+        //       { collaborations: user.username },
+        //     ],
+        //   }).sort({ createdAt: -1 }).lean(); // use .lean() to make filtering faster
+        // const userSubscriptions = filteredUsersubscriptions.map(sub => {
+        //     const relevantPeriods = sub.periods.filter(period =>
+        //       period.collaborations.includes(user.username)
+        //     );
           
-            // If the user is admin, show full data. Otherwise only periods where they're involved
-            if (sub.admin === user.username) {
-              return sub; // full access
-            } else {
-              return {
-                ...sub,
-                periods: relevantPeriods,
-              };
-            }   
-        });
+        //     // If the user is admin, show full data. Otherwise only periods where they're involved
+        //     if (sub.admin === user.username) {
+        //       return sub; // full access
+        //     } else {
+        //       return {
+        //         ...sub,
+        //         periods: relevantPeriods,
+        //       };
+        //     }   
+        // });
 
         const userData = user.toObject();
         const { _id, password: _p, updatedAt, ...filteredUser } = userData;
 
-        filteredUser.subscriptions = userSubscriptions;
+        // filteredUser.subscriptions = userSubscriptions;
 
           
         
         res.status(200).json({
           message: "Sign in successful",
           user: filteredUser,
+        //   subscriptions: userSubscriptions,
         });
     } catch (error) {
         return res.status(500).json({ message: error.message });
@@ -128,10 +128,17 @@ export const signIn = async (req, res, next) => {
 
 export const signOut = (req, res) => {
     res.clearCookie("token", {
-        httpOnly: true,
-        secure: false, // Set to true if using HTTPS
-        sameSite: "lax",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // match with cookie setup
+      sameSite: "Lax", // match with cookie setup
     });
     res.status(200).json({ message: "Sign out successful" });
-};
+  };
+  
 
+export const checkAuth = (req, res) => {
+  res.status(200).json({
+    message: "checking",
+    user : req.user?.username || null,
+  });
+};

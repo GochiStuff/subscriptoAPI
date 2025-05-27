@@ -1,40 +1,49 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
-
-import { PORT } from './config/env.js';
+import cors from 'cors';
 
 import userRouter from './routes/user.route.js';
 import authRouter from './routes/auth.route.js';
 import subscriptionRouter from './routes/subscription.route.js';
 import errorMiddleware from './middleware/error.middleware.js';
 import connectToDB from './database/mongodb.js';
-import cors from 'cors'
-
 
 const app = express();
 
-// cookies fuck you 
+// Use the PORT provided by Render or fallback to 5000 for local dev
+const PORT = process.env.PORT || 5000;
 
+// Middleware
 app.use(cors({
-  origin: "http://localhost:3000",
-  credentials: true // going httpsonly HAHA
-}))
+  origin: ["https://your-frontend.vercel.app", "http://localhost:3000"],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use('/api/v1/auth' , authRouter);
-app.use('/api/v1/users' , userRouter);
-app.use('/api/v1/subscriptions' , subscriptionRouter);
-app.use(errorMiddleware);
 
+// Routes
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/users', userRouter);
+app.use('/api/v1/subscriptions', subscriptionRouter);
+
+// Health Check Route
 app.get('/', (req, res) => {
-    res.send('Fuck off!'); // to check if server is up and running . 
+  res.status(200).send('Server is up and running 🚀');
 });
 
-app.listen( PORT , async() => {
-    console.log( `Server is running on port ${PORT}` );
+// Error handling
+app.use(errorMiddleware);
 
+// Start server
+app.listen(PORT, async () => {
+  try {
     await connectToDB();
-
-}
-);
+    console.log(`✅ [server] Connected to database`);
+    console.log(`🚀 [server] Running on port ${PORT}`);
+  } catch (error) {
+    console.error('❌ [server] DB connection failed:', error.message);
+    process.exit(1);
+  }
+});
