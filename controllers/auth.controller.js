@@ -76,8 +76,8 @@ export const signIn = async (req, res, next) => {
 
         res.cookie("token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production", // true in prod
-            sameSite: "Lax", // or "None" if your frontend is on a different domain (with HTTPS)
+            secure: process.env.NODE_ENV === "production", // must be true in prod
+            sameSite: "None", // required for cross-site cookies
             maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
           });
           
