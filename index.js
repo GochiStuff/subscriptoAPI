@@ -33,7 +33,7 @@ app.get('/', (req, res) => {
 
 app.listen( PORT , async() => {
   await connectToDB();
-  logger.info(`Server listening on port ${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 
 
 
