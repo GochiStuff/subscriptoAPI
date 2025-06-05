@@ -16,7 +16,7 @@ const app = express();
 // cookies fuck you 
 
 app.use(cors({
-  origin: "https://subscripto-frontend-a.vercel.app",
+  origin: ["https://subscripto-frontend-a.vercel.app" , "http://localhost:3000"],
   credentials: true // going httpsonly HAHA
 }))
 app.use(express.json());
@@ -33,7 +33,8 @@ app.get('/', (req, res) => {
 
 app.listen( PORT , async() => {
   await connectToDB();
-    console.log( `Server is running on port ${PORT}` );
+  logger.info(`Server listening on port ${PORT}`);
+
 
 
 }

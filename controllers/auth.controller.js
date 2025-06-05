@@ -142,3 +142,11 @@ export const checkAuth = (req, res) => {
     user : req.user?.username || null,
   });
 };
+export const serverup = (req, res) => {
+    res.status(200).json({
+      status: "ok",
+      message: "Server is awake",
+      timestamp: new Date().toISOString(),
+    });
+  };
+  
